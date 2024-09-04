@@ -28,40 +28,30 @@ typedef char*** matrix;
 
 void ejecutarPrograma(int i, size_t count, matrix progs, int pipes[][2]){
 	if (i == 0) {
-		// Cerrar todos los descriptores de pipes en el hijo
-		for (size_t j = 0; j < count-1; j++) {
-			if (j != i){
-				close(pipes[j][PIPE_READ]);
-				close(pipes[j][PIPE_WRITE]);
-			}
-		}
-		close(pipes[i][PIPE_READ]);
   		// Conectar escritura a stdout
   		dup2(pipes[i][PIPE_WRITE], STD_OUTPUT);
 	}
 	else if (i == count-1) {
-		for (size_t j = 0; j < count-1; j++) {
-			if (j != i-1){
-				close(pipes[j][PIPE_READ]);
-				close(pipes[j][PIPE_WRITE]);
-			}
-		}
 		close(pipes[i-1][PIPE_WRITE]);
   		// Conectar lectura a stdin
   		dup2(pipes[i-1][PIPE_READ], STD_INPUT);
 	}
 	else {
-		for (size_t j = 0; j < count-1; j++) {
-			if ((j != i-1) || (j != i)){
-				close(pipes[j][PIPE_READ]);
-				close(pipes[j][PIPE_WRITE]);
-			}
-		}
-		close(pipes[i-1][PIPE_WRITE]);
         dup2(pipes[i-1][PIPE_READ], STD_INPUT);
-        close(pipes[i][PIPE_READ]);
         dup2(pipes[i][PIPE_WRITE], STD_OUTPUT);
 	}
+	
+	// Cerrar los extremos no utilizados de todos los pipes
+	for (int j = 0; j < count - 1; j++) {
+		// Si es el proceso actual, cerramos solo los extremos no utilizados
+		if (j != i - 1) {
+			close(pipes[j][PIPE_READ]);
+		}
+		if (j != i) {
+			close(pipes[j][PIPE_WRITE]);
+		}
+	}
+
 	// Ejecutar programa
 	execvp(progs[i][0], progs[i]);
 }
@@ -77,9 +67,12 @@ static int run(matrix progs, size_t count)
 	//TODO: Pensar cuantos procesos necesito = cant de prog
 	//TODO: Pensar cuantos pipes necesito. = cant de prog -1
 	int pipes[count-1][2];
-  	for (int i = 0; i < count-1; i++) {
-    	pipe(pipes[i]);
-  	}	
+  	for (int i = 0; i < count - 1; i++) {
+		if (pipe(pipes[i]) == -1) {
+			perror("pipe");
+			exit(EXIT_FAILURE);
+		}
+	}	
 
 	for	(size_t i = 0; i < count; i++) {
 		children[i] = fork();
