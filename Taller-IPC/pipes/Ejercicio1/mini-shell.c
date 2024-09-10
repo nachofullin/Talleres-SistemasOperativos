@@ -32,7 +32,6 @@ void ejecutarPrograma(int i, size_t count, matrix progs, int pipes[][2]){
   		dup2(pipes[i][PIPE_WRITE], STD_OUTPUT);
 	}
 	else if (i == count-1) {
-		close(pipes[i-1][PIPE_WRITE]);
   		// Conectar lectura a stdin
   		dup2(pipes[i-1][PIPE_READ], STD_INPUT);
 	}

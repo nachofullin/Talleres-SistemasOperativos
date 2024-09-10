@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include "constants.h"
+#include <signal.h>
 
 int generate_random_number(){
 	return (rand() % 50);
@@ -38,10 +39,12 @@ int main(int argc, char **argv) {
 		}
 	}
 	// Creo los hijos
+	pid_t* children = malloc(n * sizeof(pid_t));
+	
 	for	(int i = 0; i < n; i++) {
-		pid_t pid = fork();
+		children[i] = fork();
 		int numero_secreto, mensaje;
-		if (pid == 0) {
+		if (children[i] == 0) {
 			// // Cerrar pipes no utilizados
             /*for (int j = 0; j < n; j++) {
                 if (j != i) close(pipes[j][PIPE_WRITE]);
@@ -83,6 +86,16 @@ int main(int argc, char **argv) {
 	read(pipe_resultado[PIPE_READ], &resultado, sizeof(resultado));
 
 	printf("Resultado final: %d\n", resultado);
+
+	for (int i = 0; i < n; i++)
+	{
+		if (i != start)
+		{
+			kill(children[i], SIGKILL);
+		}
+	}
+	
+	free(children);
 
 	// Esperar a que los procesos hijos terminen
     /*for (int i = 0; i < n; i++) {
